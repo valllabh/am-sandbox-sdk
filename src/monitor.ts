@@ -41,6 +41,12 @@ export interface Monitor {
   /** Stop the heartbeat + watchdog timers. */
   stop(): void;
   /**
+   * Register a kill hook the watchdog calls when the child stalls. The
+   * runtime adapter passes a function that signals the spawned child. The
+   * caller-supplied `onStall` still runs after this hook.
+   */
+  bindStallKill(kill: () => void): void;
+  /**
    * Upload transcript + workdir contents to manager artifacts. Safe to call
    * multiple times; the last call wins. Never throws.
    */
@@ -69,6 +75,8 @@ export function startMonitor(opts: MonitorOpts): Monitor {
       });
   }, heartbeatMs);
 
+  let stallKill: (() => void) | undefined;
+
   const watchdog = setInterval(() => {
     if (stopped) return;
     const idle = Date.now() - lastActivity;
@@ -76,6 +84,11 @@ export function startMonitor(opts: MonitorOpts): Monitor {
       stopped = true;
       clearInterval(heartbeat);
       clearInterval(watchdog);
+      try {
+        stallKill?.();
+      } catch {
+        /* swallow */
+      }
       try {
         opts.onStall?.(idle);
       } catch {
@@ -100,6 +113,9 @@ export function startMonitor(opts: MonitorOpts): Monitor {
       stopped = true;
       clearInterval(heartbeat);
       clearInterval(watchdog);
+    },
+    bindStallKill(kill) {
+      stallKill = kill;
     },
     async finalize({ systemPrompt, payload, result, error }) {
       stopped = true;
