@@ -105,6 +105,34 @@ export class ManagerClient {
   // request by manifest membership; non members surface as 404. Callers that
   // want to stage a tree should call this per file from the loaded skill's
   // assetsRef listing (a future story will add a manifest aware tree helper).
+  /**
+   * Enumerate every asset attached to a skill. Same manifest gate as
+   * `loadSkillAsset`. Returns the files relative to the skill prefix; an
+   * empty array is normal for skills with no assets.
+   */
+  async listSkillAssets(opts: { name: string; version: string }): Promise<
+    Array<{ path: string; sizeBytes: number; contentType: string | null; lastModified: string | null }>
+  > {
+    const r = await fetch(
+      this.url(
+        `/v1/runs/${this.runId}/skills/${encodeURIComponent(opts.name)}/${encodeURIComponent(
+          opts.version,
+        )}/assets`,
+      ),
+      { headers: this.headers() },
+    );
+    if (!r.ok) throw new Error(`listSkillAssets failed: ${r.status}`);
+    const body = (await r.json()) as {
+      items: Array<{
+        path: string;
+        sizeBytes: number;
+        contentType: string | null;
+        lastModified: string | null;
+      }>;
+    };
+    return body.items;
+  }
+
   async loadSkillAsset(opts: {
     name: string;
     version: string;
