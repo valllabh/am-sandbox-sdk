@@ -185,7 +185,9 @@ export class ManagerClient {
    * effort: failures are swallowed by callers.
    */
   async heartbeat(detail?: { idleMs?: number; transcriptLines?: number }): Promise<void> {
-    const r = await fetch(this.url(`/v1/tasks/${this.taskId}/heartbeat`), {
+    // /v1/runs/:runId/heartbeat is the run-scoped variant; /v1/tasks/:id/heartbeat
+    // is operator-only. The sandbox heartbeats itself.
+    const r = await fetch(this.url(`/v1/runs/${this.runId}/heartbeat`), {
       method: "POST",
       headers: this.headers({ "content-type": "application/json" }),
       body: JSON.stringify(detail ?? {}),
