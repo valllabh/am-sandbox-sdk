@@ -75,19 +75,23 @@ export function startMonitor(opts: MonitorOpts): Monitor {
       });
   }, heartbeatMs);
 
-  let stallKill: (() => void) | undefined;
+  const stallSubscribers: Array<() => void> = [];
 
   const watchdog = setInterval(() => {
     if (stopped) return;
     const idle = Date.now() - lastActivity;
     if (idle > stallMs) {
       stopped = true;
-      clearInterval(heartbeat);
       clearInterval(watchdog);
-      try {
-        stallKill?.();
-      } catch {
-        /* swallow */
+      // Keep heartbeats firing for another 30s so operators still see the run
+      // alive while we wait for the child to die from the stall hooks.
+      setTimeout(() => clearInterval(heartbeat), 30_000);
+      for (const fn of stallSubscribers) {
+        try {
+          fn();
+        } catch {
+          /* swallow */
+        }
       }
       try {
         opts.onStall?.(idle);
@@ -115,7 +119,9 @@ export function startMonitor(opts: MonitorOpts): Monitor {
       clearInterval(watchdog);
     },
     bindStallKill(kill) {
-      stallKill = kill;
+      // Multi subscriber. Both the runner (to set its stalled flag) and the
+      // runtime adapter (to send SIGTERM to the child) can register.
+      stallSubscribers.push(kill);
     },
     async finalize({ systemPrompt, payload, result, error }) {
       stopped = true;
