@@ -1,0 +1,13 @@
+{
+  "name": "am-sandbox-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared sandbox SDK for agent-manager runners. ManagerClient (bootstrap, skills, logs, artifacts, heartbeat, complete, fail), monitor (heartbeat + watchdog + artifact finalize), skills helpers.",
+  "engines": { "node": ">=20.0.0" },
+  "exports": {
+    "./sdk": "./src/sdk.ts",
+    "./skills": "./src/skills.ts",
+    "./monitor": "./src/monitor.ts"
+  }
+}
