@@ -21,7 +21,24 @@ export interface BootstrapResponse {
     payload: Record<string, unknown>;
     parentTaskId: string | null;
   };
-  agent: { id: string; name: string; version: string; imageUri: string };
+  agent: {
+    id: string;
+    name: string;
+    version: string;
+    imageUri: string;
+    // Story 19-1e: provider/model id the sandbox uses. Optional for one
+    // release while the api rolls out; falls back to payload.model when null.
+    model?: string;
+  };
+  // Story 19-1e: resolved environment summary. Null when the api could not
+  // resolve an env row; the sandbox runner falls back to payload.region.
+  env?: {
+    id: string;
+    name: string;
+    version: string;
+    provider: string;
+    region: string | null;
+  } | null;
   enabledSkills: { name: string; version: string }[];
   soulMd: string;
   secrets: Record<string, string>;
